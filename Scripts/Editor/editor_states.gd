@@ -2,10 +2,12 @@
 extends Node
 
 const Tool = preload("res://Scripts/Editor/editor_enums.gd").Tool
+const PlayState = preload("res://Scripts/Editor/editor_enums.gd").PlayState
 
 signal tool_changed(new_tool: Tool)
 signal selection_changed
 signal interaction_changed
+signal play_state_changed(new_state: PlayState)
 
 var _current_tool: Tool = Tool.SELECT
 var current_tool: Tool:
@@ -17,8 +19,10 @@ var current_tool: Tool:
 		var was_locked := is_interaction_locked
 		_current_tool = value
 		_is_drawing = false
+		_draw_start_snap = {}
 		_is_box_selecting = false
 		_is_dragging_selection = false
+		_dragging_handle = {}
 		if was_locked != is_interaction_locked:
 			interaction_changed.emit()
 		tool_changed.emit(_current_tool)
@@ -55,6 +59,14 @@ var draw_start: Vector2:
 		return _draw_start
 	set(value):
 		_draw_start = value
+
+## 起点的完整吸附结果（含 kind / link / 锚点信息），用于第二次点击时建杆
+var _draw_start_snap: Dictionary = {}
+var draw_start_snap: Dictionary:
+	get:
+		return _draw_start_snap
+	set(value):
+		_draw_start_snap = value
 
 var _is_box_selecting := false
 var is_box_selecting: bool:
@@ -101,8 +113,43 @@ var drag_last: Vector2:
 	set(value):
 		_drag_last = value
 
+## 正在拖动的连杆端点手柄 { rod_id, end }，空字典表示未拖动
+var _dragging_handle: Dictionary = {}
+var dragging_handle: Dictionary:
+	get:
+		return _dragging_handle
+	set(value):
+		if _dragging_handle == value:
+			return
+		var was_locked := is_interaction_locked
+		_dragging_handle = value
+		if was_locked != is_interaction_locked:
+			interaction_changed.emit()
 
-## 画线、框选或拖选进行中时锁定工具切换
+
+## 画线、框选、拖选或拖动手柄进行中时锁定工具切换
 var is_interaction_locked: bool:
 	get:
-		return _is_drawing or _is_box_selecting or _is_dragging_selection
+		return _is_drawing or _is_box_selecting or _is_dragging_selection or not _dragging_handle.is_empty()
+
+
+## 当前运行模式（编辑 / 播放 / 暂停）
+var _play_state: PlayState = PlayState.EDITING
+var play_state: PlayState:
+	get:
+		return _play_state
+	set(value):
+		if _play_state == value:
+			return
+		_play_state = value
+		play_state_changed.emit(_play_state)
+
+## 仅编辑模式下允许编辑器交互
+var is_editing: bool:
+	get:
+		return _play_state == PlayState.EDITING
+
+## 物理是否应处于运行状态（仅播放模式）
+var is_playing: bool:
+	get:
+		return _play_state == PlayState.PLAYING

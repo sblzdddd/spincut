@@ -15,6 +15,7 @@ func _ready() -> void:
 	marker_button.pressed.connect(func() -> void: _set_tool(Tool.MARKER_POINT))
 	EditorStates.tool_changed.connect(_on_tool_changed)
 	EditorStates.interaction_changed.connect(_on_interaction_changed)
+	EditorStates.play_state_changed.connect(_on_play_state_changed)
 	_sync_toolbar_buttons()
 
 
@@ -32,16 +33,21 @@ func _on_interaction_changed() -> void:
 	_sync_toolbar_buttons()
 
 
+func _on_play_state_changed(_new_state) -> void:
+	_sync_toolbar_buttons()
+
+
 func _sync_toolbar_buttons() -> void:
 	var current_tool := EditorStates.current_tool
-	var locked := EditorStates.is_interaction_locked
+	# 交互进行中或处于播放/暂停模式时禁用工具按钮
+	var disabled: bool = EditorStates.is_interaction_locked or not EditorStates.is_editing
 
 	select_button.button_pressed = current_tool == Tool.SELECT
 	draw_button.button_pressed = current_tool == Tool.DRAW_LINE
 	fixed_button.button_pressed = current_tool == Tool.FIXED_POINT
 	marker_button.button_pressed = current_tool == Tool.MARKER_POINT
 
-	select_button.disabled = bool(locked)
-	draw_button.disabled = bool(locked)
-	fixed_button.disabled = bool(locked)
-	marker_button.disabled = bool(locked)
+	select_button.disabled = disabled
+	draw_button.disabled = disabled
+	fixed_button.disabled = disabled
+	marker_button.disabled = disabled

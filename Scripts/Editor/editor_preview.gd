@@ -21,6 +21,7 @@ static func draw(
 		Tool.SELECT:
 			if EditorStates.is_box_selecting:
 				_draw_box_select(canvas)
+			_draw_rod_handles(canvas, model)
 
 
 static func _draw_box_select(canvas: CanvasItem) -> void:
@@ -31,25 +32,20 @@ static func _draw_box_select(canvas: CanvasItem) -> void:
 
 static func _draw_line_tool_preview(canvas: CanvasItem, mouse_world: Vector2, model: LinkageModel) -> void:
 	if not EditorStates.is_drawing:
-		# 尚未开始画线：仅显示起点吸附提示（起点必须落在已有端点上）
-		var start_snap := LinkageQueries.find_line_snap(model, mouse_world, true)
+		# 尚未开始画线：仅显示起点吸附提示（起点必须落在已有节点/杆身/空电机锚点上）
+		var start_snap := LinkageQueries.find_draw_snap(model, mouse_world, true)
 		if start_snap.is_empty():
 			_draw_preview_dot(canvas, mouse_world, EditorConstants.LINE_PREVIEW_COLOR, EditorConstants.INVALID_ALPHA)
 			return
-		_draw_preview_dot(canvas, start_snap["position"], EditorConstants.LINE_PREVIEW_COLOR, EditorConstants.PREVIEW_ALPHA)
+		_draw_preview_dot(canvas, start_snap["position"], _snap_color(start_snap), EditorConstants.PREVIEW_ALPHA)
 		return
 
-	# 已确定起点：显示起点到合法终点的预览线段（终点可吸附端点，也可悬空）
-	var end_snap := LinkageQueries.find_line_snap(model, mouse_world, false)
-	if end_snap.is_empty():
-		_draw_preview_dot(canvas, EditorStates.draw_start, EditorConstants.LINE_START_COLOR, EditorConstants.PREVIEW_ALPHA)
-		_draw_preview_dot(canvas, mouse_world, EditorConstants.LINE_PREVIEW_COLOR, EditorConstants.INVALID_ALPHA)
-		return
-
+	# 已确定起点：显示起点到终点的预览线段（终点可吸附端点/杆身/锚点，也可悬空）
+	var end_snap := LinkageQueries.find_draw_snap(model, mouse_world, false)
 	var end_pos: Vector2 = end_snap["position"]
 	var end_valid := end_pos.distance_to(EditorStates.draw_start) >= LinkageModel.MIN_ROD_LENGTH
 	var end_alpha := EditorConstants.PREVIEW_ALPHA if end_valid else EditorConstants.INVALID_ALPHA
-	var end_color := EditorConstants.LINE_PREVIEW_COLOR if end_valid else EditorConstants.INVALID_PLACE_COLOR
+	var end_color := _snap_color(end_snap) if end_valid else EditorConstants.INVALID_PLACE_COLOR
 
 	_draw_preview_dot(canvas, EditorStates.draw_start, EditorConstants.LINE_START_COLOR, EditorConstants.PREVIEW_ALPHA)
 	_draw_preview_dot(canvas, end_pos, end_color, end_alpha)
@@ -59,6 +55,38 @@ static func _draw_line_tool_preview(canvas: CanvasItem, mouse_world: Vector2, mo
 		Color(end_color, end_alpha),
 		3.0
 	)
+
+
+## 不同吸附类型的提示颜色
+static func _snap_color(snap: Dictionary) -> Color:
+	match snap.get("kind", ""):
+		"along":
+			return EditorConstants.ALONG_SNAP_COLOR
+		"motor_anchor":
+			return EditorConstants.MOTOR_ANCHOR_COLOR
+		_:
+			return EditorConstants.LINE_PREVIEW_COLOR
+
+
+## 为选中的连杆绘制两个端点手柄
+static func _draw_rod_handles(canvas: CanvasItem, model: LinkageModel) -> void:
+	for rod_id in EditorStates.selected_rods:
+		var rod := model.get_rod_by_id(rod_id)
+		if rod.is_empty():
+			continue
+		_draw_handle_dot(canvas, rod["start"])
+		_draw_handle_dot(canvas, rod["end"])
+
+
+static func _draw_handle_dot(canvas: CanvasItem, pos: Vector2) -> void:
+	var fill := Color(
+		EditorConstants.HANDLE_COLOR.r,
+		EditorConstants.HANDLE_COLOR.g,
+		EditorConstants.HANDLE_COLOR.b,
+		EditorConstants.HANDLE_ALPHA
+	)
+	canvas.draw_circle(pos, EditorConstants.HANDLE_RADIUS, fill)
+	canvas.draw_arc(pos, EditorConstants.HANDLE_RADIUS + 1.0, 0.0, TAU, 20, Color(1, 1, 1, 0.9), 1.5)
 
 
 static func _draw_point_tool_preview(

@@ -6,6 +6,8 @@ uniform float outer_radius : hint_range(0.1, 0.9) = 0.5;
 uniform float hole_radius : hint_range(0.0, 0.5) = 0.15;
 uniform float gear_speed : hint_range(-10.0, 10.0) = 2.0;
 uniform vec4 gear_color : source_color = vec4(0.6, 0.6, 0.6, 1.0);
+// 由脚本驱动的动画时间：仅在播放模式累加，暂停/停止时保持不变以冻结齿轮
+uniform float anim_time = 0.0;
 
 void fragment() {
     // Center the UV coordinates (-0.5 to 0.5)
@@ -15,8 +17,8 @@ void fragment() {
     float dist = length(uv);
     float angle = atan(uv.y, uv.x);
     
-    // Animate rotation over time
-    angle += TIME * gear_speed;
+    // Animate rotation over the script-driven time (frozen when not playing)
+    angle += anim_time * gear_speed;
     
     // Create the square teeth wave using a sine wave passed through a clamp
     float teeth_wave = sin(angle * float(teeth_count));

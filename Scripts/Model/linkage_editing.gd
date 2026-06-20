@@ -3,19 +3,43 @@ class_name LinkageEditing
 extends RefCounted
 
 
-static func create_rod_from_line(model: LinkageModel, start_pos: Vector2, end_pos: Vector2) -> bool:
+## 依据起点/终点的吸附结果创建连杆：
+## - kind=="along" 的一端记录 start_link/end_link，钉到目标连杆杆身内部点；
+## - kind=="motor_anchor" 的一端绑定电机锚点并标记该连杆为电机驱动。
+static func create_rod_from_snaps(model: LinkageModel, start_snap: Dictionary, end_snap: Dictionary) -> bool:
+	var start_pos: Vector2 = start_snap["position"]
+	var end_pos: Vector2 = end_snap["position"]
 	if start_pos.distance_to(end_pos) < LinkageModel.MIN_ROD_LENGTH:
 		return false
 
+	var motored: bool = start_snap.get("kind", "") == "motor_anchor" or end_snap.get("kind", "") == "motor_anchor"
 	var rod := {
 		"id": model.next_rod_id,
 		"start": start_pos,
 		"end": end_pos,
-		"motored": false
+		"motored": motored
 	}
+	if start_snap.get("kind", "") == "along":
+		rod["start_link"] = {"rod_id": start_snap["rod_id"], "t": start_snap["t"]}
+	if end_snap.get("kind", "") == "along":
+		rod["end_link"] = {"rod_id": end_snap["rod_id"], "t": end_snap["t"]}
+
+	var rod_id: int = model.next_rod_id
 	model.next_rod_id += 1
 	model.rods.append(rod)
+
+	if start_snap.get("kind", "") == "motor_anchor":
+		_attach_motor(model, rod_id, 0, start_pos)
+	if end_snap.get("kind", "") == "motor_anchor":
+		_attach_motor(model, rod_id, 1, end_pos)
 	return true
+
+
+static func _attach_motor(model: LinkageModel, rod_id: int, end_idx: int, pos: Vector2) -> void:
+	if model.motor_point.is_empty():
+		model.motor_point = {"id": 1, "position": pos, "attached": []}
+	model.motor_point["position"] = pos
+	model.motor_point["attached"] = [{"rod_id": rod_id, "end": end_idx}]
 
 
 ## 在连杆端点放置固定点；同位置已有其他点会被覆盖
@@ -62,8 +86,10 @@ static func place_marker_point(model: LinkageModel, mouse_pos: Vector2) -> bool:
 	return true
 
 
-## 将各特殊点的位置同步到其绑定的连杆端点
+## 先把杆身链接端点的位置从目标连杆重算（多趟以处理链式依赖），再同步各特殊点
 static func sync_points_to_attached_endpoints(model: LinkageModel) -> void:
+	sync_links(model)
+
 	if not model.motor_point.is_empty():
 		var motor_attached: Array = model.motor_point.get("attached", [])
 		if not motor_attached.is_empty():
@@ -86,12 +112,30 @@ static func set_attached_endpoints(model: LinkageModel, point_data: Dictionary) 
 		model.set_rod_endpoint(endpoint, point_data["position"])
 
 
+## 把所有带 start_link/end_link 的连杆端点重算到目标连杆杆身内部点。
+## 多趟迭代以处理链式依赖（A 钉在 B 上、B 钉在 C 上）。
+static func sync_links(model: LinkageModel) -> void:
+	for _pass in range(model.rods.size()):
+		for rod in model.rods:
+			if rod.has("start_link"):
+				rod["start"] = LinkageQueries.link_world_position(model, rod["start_link"])
+			if rod.has("end_link"):
+				rod["end"] = LinkageQueries.link_world_position(model, rod["end_link"])
+
+
 static func delete_rod(model: LinkageModel, rod_id: int) -> void:
 	var new_rods: Array = []
 	for rod in model.rods:
 		if rod["id"] != rod_id:
 			new_rods.append(rod)
 	model.rods = new_rods
+
+	# 删除指向该连杆的杆身链接，避免悬空引用
+	for rod in model.rods:
+		if rod.has("start_link") and rod["start_link"]["rod_id"] == rod_id:
+			rod.erase("start_link")
+		if rod.has("end_link") and rod["end_link"]["rod_id"] == rod_id:
+			rod.erase("end_link")
 
 	_remove_endpoint_from_point(model.motor_point, rod_id)
 	for fixed in model.fixed_points:
@@ -112,7 +156,8 @@ static func clear_marker(model: LinkageModel) -> void:
 	model.marker_point.clear()
 
 
-## 清理失去绑定的孤立点；电机点始终保留并回退到首根连杆
+## 清理失去绑定的孤立固定点/标记点。
+## 电机点不再自动回退到某根连杆：失去连杆后保留为空置锚点（停在原位），可再次从其画线。
 static func cleanup_orphan_points(model: LinkageModel) -> void:
 	var kept_fixed: Array = []
 	for fixed in model.fixed_points:
@@ -122,13 +167,6 @@ static func cleanup_orphan_points(model: LinkageModel) -> void:
 
 	if not model.marker_point.is_empty() and model.marker_point.get("attached", []).is_empty():
 		model.marker_point.clear()
-
-	if not model.motor_point.is_empty():
-		var motor_attached: Array = model.motor_point.get("attached", [])
-		if motor_attached.is_empty() and not model.rods.is_empty():
-			var fallback_rod: Dictionary = model.rods[0]
-			model.motor_point["attached"] = [{"rod_id": fallback_rod["id"], "end": 0}]
-			model.motor_point["position"] = fallback_rod["start"]
 
 
 static func _remove_endpoint_from_point(point_data: Dictionary, rod_id: int) -> void:

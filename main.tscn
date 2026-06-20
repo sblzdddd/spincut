@@ -2,8 +2,10 @@
 
 [ext_resource type="Script" uid="uid://bxro82ww6hv21" path="res://Scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://bwiiosexwnj6i" path="res://Scripts/Editor/editor_toolbars.gd" id="2_0xm2m"]
-[ext_resource type="Script" path="res://Scripts/Editor/editor_preview_overlay.gd" id="3_preview"]
 [ext_resource type="Shader" uid="uid://d4ip23i1i8dst" path="res://Shaders/GEAR.gdshader" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://c2a66ounxvvkh" path="res://Scripts/Editor/editor_preview_overlay.gd" id="3_preview"]
+[ext_resource type="Script" uid="uid://b1pra4jo7puyr" path="res://Scripts/Editor/playback_controls.gd" id="4_play"]
+[ext_resource type="Script" uid="uid://blpi102158tlf" path="res://Scripts/gears_background.gd" id="5_gears"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jixuk"]
 shader = ExtResource("2_h2yge")
@@ -13,6 +15,7 @@ shader_parameter/outer_radius = 0.5
 shader_parameter/hole_radius = 0.050000002375
 shader_parameter/gear_speed = 1.0000005225000006
 shader_parameter/gear_color = Color(1, 1, 1, 0.15686275)
+shader_parameter/anim_time = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ig7tw"]
 shader = ExtResource("2_h2yge")
@@ -22,6 +25,7 @@ shader_parameter/outer_radius = 0.49300002015762
 shader_parameter/hole_radius = 0.0170000008075
 shader_parameter/gear_speed = -0.7499995606249996
 shader_parameter/gear_color = Color(1, 1, 1, 0.15686275)
+shader_parameter/anim_time = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0xm2m"]
 shader = ExtResource("2_h2yge")
@@ -31,6 +35,7 @@ shader_parameter/outer_radius = 0.5
 shader_parameter/hole_radius = 0.06400000304
 shader_parameter/gear_speed = 0.37500049281250014
 shader_parameter/gear_color = Color(1, 1, 1, 0.15686275)
+shader_parameter/anim_time = 0.0
 
 [node name="Node2D" type="Node2D" unique_id=324626853]
 script = ExtResource("1_main")
@@ -52,6 +57,7 @@ color = Color(0, 0.15999995, 0.24, 1)
 
 [node name="GearsRoot" type="Node2D" parent="." unique_id=874168869]
 position = Vector2(460, 360)
+script = ExtResource("5_gears")
 
 [node name="GEAR" type="ColorRect" parent="GearsRoot" unique_id=676840199]
 material = SubResource("ShaderMaterial_jixuk")
@@ -90,20 +96,27 @@ position = Vector2(460, 360)
 
 [node name="EditorObjects" type="Node2D" parent="." unique_id=2105354055]
 
-[node name="PreviewOverlay" type="Node2D" parent="."]
+[node name="PreviewOverlay" type="Node2D" parent="." unique_id=1711161907]
 z_index = 10
 script = ExtResource("3_preview")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1483804736]
 
 [node name="Toolbar" type="PanelContainer" parent="CanvasLayer" unique_id=871229089]
-offset_left = 240.0
-offset_top = 600.0
-offset_right = 800.0
-offset_bottom = 646.0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -46.0
+offset_right = 280.0
+grow_horizontal = 2
+grow_vertical = 0
 
 [node name="ToolsHBox" type="HBoxContainer" parent="CanvasLayer/Toolbar" unique_id=340575079 node_paths=PackedStringArray("select_button", "draw_button", "fixed_button", "marker_button")]
 layout_mode = 2
+alignment = 1
 script = ExtResource("2_0xm2m")
 select_button = NodePath("SelectButton")
 draw_button = NodePath("DrawButton")
@@ -130,3 +143,27 @@ text = "Fixed Point"
 layout_mode = 2
 toggle_mode = true
 text = "Marker Point"
+
+[node name="PlaybackBar" type="PanelContainer" parent="CanvasLayer" unique_id=157589180]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_bottom = 46.0
+grow_horizontal = 0
+
+[node name="PlaybackHBox" type="HBoxContainer" parent="CanvasLayer/PlaybackBar" unique_id=469370783 node_paths=PackedStringArray("play_button", "stop_button")]
+layout_mode = 2
+alignment = 2
+script = ExtResource("4_play")
+play_button = NodePath("PlayButton")
+stop_button = NodePath("StopButton")
+
+[node name="PlayButton" type="Button" parent="CanvasLayer/PlaybackBar/PlaybackHBox" unique_id=1301207605]
+layout_mode = 2
+text = "Play"
+
+[node name="StopButton" type="Button" parent="CanvasLayer/PlaybackBar/PlaybackHBox" unique_id=1289114310]
+layout_mode = 2
+disabled = true
+text = "Stop"

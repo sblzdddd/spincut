@@ -62,12 +62,17 @@ func handle_left_release(_mouse_pos: Vector2) -> bool:
 		EditorStates.is_box_selecting = false
 
 	EditorStates.is_dragging_selection = false
+	EditorStates.dragging_handle = {}
 	return true
 
 
 func handle_mouse_motion(mouse_pos: Vector2) -> bool:
 	match EditorStates.current_tool:
 		Tool.SELECT:
+			if not EditorStates.dragging_handle.is_empty():
+				if _drag_handle(mouse_pos):
+					_on_rebuild.call()
+				return true
 			if EditorStates.is_box_selecting:
 				EditorStates.box_end = mouse_pos
 				return true
@@ -83,11 +88,15 @@ func handle_mouse_motion(mouse_pos: Vector2) -> bool:
 	return false
 
 
-## 选择工具：优先选中关节，其次连杆，否则开始框选
+## 选择工具：优先抓取已选连杆的端点手柄，其次关节，其次选中连杆（仅选中，不整体拖动），否则框选
 func _handle_select_press(mouse_pos: Vector2) -> bool:
-	var joint_hit := LinkageQueries.pick_joint(_model, mouse_pos)
-	var rod_hit := LinkageQueries.pick_rod(_model, mouse_pos)
+	var handle := _pick_handle(mouse_pos)
+	if not handle.is_empty():
+		EditorStates.dragging_handle = handle
+		EditorStates.drag_last = mouse_pos
+		return true
 
+	var joint_hit := LinkageQueries.pick_joint(_model, mouse_pos)
 	if not joint_hit.is_empty():
 		if not _has_selected_joint(joint_hit):
 			EditorStates.selected_joints = [joint_hit]
@@ -95,41 +104,57 @@ func _handle_select_press(mouse_pos: Vector2) -> bool:
 			EditorStates.selection_changed.emit()
 		EditorStates.drag_last = mouse_pos
 		EditorStates.is_dragging_selection = true
-	elif rod_hit != -1:
+		return true
+
+	var rod_hit := LinkageQueries.pick_rod(_model, mouse_pos)
+	if rod_hit != -1:
+		# 连杆只可被选中以显示手柄，不再通过拖动杆体整体移动
 		if not EditorStates.selected_rods.has(rod_hit):
 			EditorStates.selected_rods = [rod_hit]
 			EditorStates.selected_joints = []
 			EditorStates.selection_changed.emit()
-		EditorStates.drag_last = mouse_pos
-		EditorStates.is_dragging_selection = true
-	else:
-		if not EditorStates.selected_rods.is_empty() or not EditorStates.selected_joints.is_empty():
-			EditorStates.selected_rods = []
-			EditorStates.selected_joints = []
-			EditorStates.selection_changed.emit()
-		EditorStates.box_start = mouse_pos
-		EditorStates.box_end = mouse_pos
-		EditorStates.is_box_selecting = true
+		return true
 
+	if not EditorStates.selected_rods.is_empty() or not EditorStates.selected_joints.is_empty():
+		EditorStates.selected_rods = []
+		EditorStates.selected_joints = []
+		EditorStates.selection_changed.emit()
+	EditorStates.box_start = mouse_pos
+	EditorStates.box_end = mouse_pos
+	EditorStates.is_box_selecting = true
 	return true
+
+
+## 命中已选连杆的端点手柄时返回 { rod_id, end }
+func _pick_handle(mouse_pos: Vector2) -> Dictionary:
+	for rod_id in EditorStates.selected_rods:
+		var rod := _model.get_rod_by_id(rod_id)
+		if rod.is_empty():
+			continue
+		if rod["start"].distance_to(mouse_pos) <= LinkageModel.JOINT_PICK_RADIUS:
+			return {"rod_id": rod_id, "end": 0}
+		if rod["end"].distance_to(mouse_pos) <= LinkageModel.JOINT_PICK_RADIUS:
+			return {"rod_id": rod_id, "end": 1}
+	return {}
 
 
 ## 画线工具：第一次点击定起点，第二次点击定终点（均需合法吸附）
 func _handle_draw_line_press(mouse_pos: Vector2) -> bool:
 	if not EditorStates.is_drawing:
-		var start_snap := LinkageQueries.find_line_snap(_model, mouse_pos, true)
+		var start_snap := LinkageQueries.find_draw_snap(_model, mouse_pos, true)
 		if start_snap.is_empty():
 			return true
 		EditorStates.draw_start = start_snap["position"]
+		EditorStates.draw_start_snap = start_snap
 		EditorStates.is_drawing = true
 	else:
-		var end_snap := LinkageQueries.find_line_snap(_model, mouse_pos, false)
+		var end_snap := LinkageQueries.find_draw_snap(_model, mouse_pos, false)
 		if end_snap.is_empty():
 			return true
 		var end_pos: Vector2 = end_snap["position"]
 		if EditorStates.draw_start.distance_to(end_pos) < LinkageModel.MIN_ROD_LENGTH:
 			return true
-		if LinkageEditing.create_rod_from_line(_model, EditorStates.draw_start, end_pos):
+		if LinkageEditing.create_rod_from_snaps(_model, EditorStates.draw_start_snap, end_snap):
 			_on_rebuild.call()
 		EditorStates.is_drawing = false
 
@@ -191,6 +216,67 @@ func _move_selection(delta: Vector2) -> bool:
 
 	LinkageEditing.sync_points_to_attached_endpoints(_model)
 	return true
+
+
+## 拖动端点手柄：仅吸附到其他连杆的端点（ENDS），否则悬空跟随鼠标。
+## 若手柄所在位置是多杆共享关节，则整簇端点一起移动以保持连接。
+func _drag_handle(mouse_pos: Vector2) -> bool:
+	var handle := EditorStates.dragging_handle
+	var rod := _model.get_rod_by_id(handle["rod_id"])
+	if rod.is_empty():
+		return false
+
+	var old_pos: Vector2 = rod["start"] if handle["end"] == 0 else rod["end"]
+	var target_pos := mouse_pos
+	var snap := _find_end_snap_excluding(mouse_pos, handle["rod_id"])
+	if not snap.is_empty():
+		target_pos = snap["position"]
+
+	if target_pos.is_equal_approx(old_pos):
+		return false
+
+	_move_cluster(old_pos, target_pos)
+	EditorStates.drag_last = mouse_pos
+	return true
+
+
+## 查找可吸附的端点（排除被拖动的连杆自身），且该端点仍可再接一根连杆
+func _find_end_snap_excluding(pos: Vector2, exclude_rod_id: int) -> Dictionary:
+	var best_dist := LinkageModel.SNAP_DISTANCE
+	var best: Dictionary = {}
+	for rod in _model.rods:
+		if rod["id"] == exclude_rod_id:
+			continue
+		for end_idx in [0, 1]:
+			var p: Vector2 = rod["start"] if end_idx == 0 else rod["end"]
+			var d := p.distance_to(pos)
+			if d <= best_dist and LinkageQueries.count_members_at_position(_model, p) <= 1:
+				best_dist = d
+				best = {"position": p}
+	return best
+
+
+## 将与 old_pos 重合的所有连杆端点（及附着其上的特殊点）整体移动到 new_pos
+func _move_cluster(old_pos: Vector2, new_pos: Vector2) -> void:
+	for rod in _model.rods:
+		if rod["start"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+			rod["start"] = new_pos
+			rod.erase("start_link")
+		if rod["end"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+			rod["end"] = new_pos
+			rod.erase("end_link")
+
+	for fixed in _model.fixed_points:
+		if fixed["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+			fixed["position"] = new_pos
+
+	if not _model.marker_point.is_empty() and _model.marker_point["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+		_model.marker_point["position"] = new_pos
+
+	if not _model.motor_point.is_empty() and _model.motor_point["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+		_model.motor_point["position"] = new_pos
+
+	LinkageEditing.sync_points_to_attached_endpoints(_model)
 
 
 func _delete_selected() -> bool:
