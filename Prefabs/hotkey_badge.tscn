@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="StyleBox" path="res://Prefabs/hotkey_badge_style.tres" id="1_style"]
+
+[node name="HotkeyBadge" type="PanelContainer"]
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("1_style")
+
+[node name="HotkeyLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1

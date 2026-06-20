@@ -9,17 +9,6 @@ const LINE_WIDTH := 8.0
 const MOTORED_COLOR := Color(0.9, 0.3, 0.25)  # 电机驱动连杆
 const SELECTED_COLOR := Color(1, 1, 1)          # 选中高亮
 
-## 普通连杆调色板：按连杆 id 取色，使每根新画的连杆颜色不同，便于区分
-const ROD_PALETTE := [
-	Color(0.2, 0.8, 0.95),   # 青
-	Color(0.45, 0.9, 0.45),  # 绿
-	Color(0.95, 0.8, 0.3),   # 黄
-	Color(0.7, 0.5, 0.95),   # 紫
-	Color(0.95, 0.55, 0.3),  # 橙
-	Color(0.45, 0.65, 0.95), # 蓝
-	Color(0.95, 0.45, 0.65), # 粉
-	Color(0.4, 0.9, 0.8),    # 蓝绿
-]
 
 var rod_id: int
 
@@ -69,4 +58,4 @@ static func spawn(parent: Node2D, rod_data: Dictionary, selected: bool, frozen :
 
 ## 按连杆 id 在调色板中循环取色，保证同一根连杆每次重建颜色一致
 static func _color_for_id(id: int) -> Color:
-	return ROD_PALETTE[(id - 1) % ROD_PALETTE.size()]
+	return EditorConstants.ROD_PALETTE[(id - 1) % EditorConstants.ROD_PALETTE.size()]

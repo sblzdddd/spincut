@@ -64,3 +64,5 @@ static func _color_for_kind(point_kind: Kind) -> Color:
 		Kind.MARKER:
 			return MARKER_COLOR
 	return FIXED_COLOR
+
+

@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://clfwvicj3rvuq"]
+
+[ext_resource type="Script" uid="uid://bplyfjutxmcb0" path="res://Scripts/Widgets/level_complete_overlay.gd" id="1_overlay"]
+
+[node name="LevelComplete" type="Control" unique_id=235444611 node_paths=PackedStringArray("title_label", "level_label", "accuracy_label", "retry_button", "next_button", "menu_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_overlay")
+title_label = NodePath("Center/Panel/Margin/VBox/TitleLabel")
+level_label = NodePath("Center/Panel/Margin/VBox/LevelLabel")
+accuracy_label = NodePath("Center/Panel/Margin/VBox/AccuracyLabel")
+retry_button = NodePath("Center/Panel/Margin/VBox/ButtonRow/RetryButton")
+next_button = NodePath("Center/Panel/Margin/VBox/ButtonRow/NextButton")
+menu_button = NodePath("Center/Panel/Margin/VBox/MenuButton")
+
+[node name="Dim" type="ColorRect" parent="." unique_id=298234039]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0.078, 0.118, 0.65)
+
+[node name="Center" type="CenterContainer" parent="." unique_id=1629603145]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center" unique_id=1602711094]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel" unique_id=1726634041]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin" unique_id=1368449698]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="Center/Panel/Margin/VBox" unique_id=1641331756]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Level Complete"
+horizontal_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="Center/Panel/Margin/VBox" unique_id=214792545]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Level"
+horizontal_alignment = 1
+
+[node name="AccuracyLabel" type="Label" parent="Center/Panel/Margin/VBox" unique_id=1906643528]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Accuracy 0.0%"
+horizontal_alignment = 1
+
+[node name="ButtonRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox" unique_id=540885320]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="RetryButton" type="Button" parent="Center/Panel/Margin/VBox/ButtonRow" unique_id=394702626]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Retry"
+
+[node name="NextButton" type="Button" parent="Center/Panel/Margin/VBox/ButtonRow" unique_id=1138154087]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Next Level"
+
+[node name="MenuButton" type="Button" parent="Center/Panel/Margin/VBox" unique_id=2076505208]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Back to Home"

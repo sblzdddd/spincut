@@ -28,10 +28,13 @@ static func find_draw_snap(model: LinkageModel, pos: Vector2, require_node: bool
 			"t": along["t"]
 		}
 
-	if not model.motor_point.is_empty():
-		var motor_attached: Array = model.motor_point.get("attached", [])
-		if motor_attached.is_empty() and model.motor_point["position"].distance_to(pos) <= LinkageModel.SNAP_DISTANCE:
-			return {"kind": "motor_anchor", "position": model.motor_point["position"]}
+	for motor in model.motor_points:
+		if _motor_open_for_draw(motor) and motor["position"].distance_to(pos) <= LinkageModel.SNAP_DISTANCE:
+			return {
+				"kind": "motor_anchor",
+				"position": motor["position"],
+				"motor_id": motor["id"]
+			}
 
 	if require_node:
 		return {}
@@ -87,15 +90,19 @@ static func pick_rod(model: LinkageModel, pos: Vector2) -> int:
 
 ## 点击检测：返回命中的关节 { type, id }
 static func pick_joint(model: LinkageModel, pos: Vector2) -> Dictionary:
-	if not model.marker_point.is_empty() and model.marker_point["position"].distance_to(pos) <= LinkageModel.JOINT_PICK_RADIUS:
-		return {"type": "marker", "id": 1}
+	for i in range(model.marker_points.size() - 1, -1, -1):
+		var marker: Dictionary = model.marker_points[i]
+		if marker["position"].distance_to(pos) <= LinkageModel.JOINT_PICK_RADIUS:
+			return {"type": "marker", "id": marker["id"]}
 
 	for fixed in model.fixed_points:
 		if fixed["position"].distance_to(pos) <= LinkageModel.JOINT_PICK_RADIUS:
 			return {"type": "fixed", "id": fixed["id"]}
 
-	if not model.motor_point.is_empty() and model.motor_point["position"].distance_to(pos) <= LinkageModel.JOINT_PICK_RADIUS:
-		return {"type": "motor", "id": 1}
+	for i in range(model.motor_points.size() - 1, -1, -1):
+		var motor: Dictionary = model.motor_points[i]
+		if motor["position"].distance_to(pos) <= LinkageModel.JOINT_PICK_RADIUS:
+			return {"type": "motor", "id": motor["id"]}
 
 	return {}
 
@@ -137,12 +144,43 @@ static func count_members_at_position(model: LinkageModel, pos: Vector2) -> int:
 
 
 static func endpoint_used_by_motor(model: LinkageModel, endpoint: Dictionary) -> bool:
-	if model.motor_point.is_empty():
-		return false
-	for other in model.motor_point.get("attached", []):
-		if same_endpoint(other, endpoint):
-			return true
+	for motor in model.motor_points:
+		for other in motor.get("attached", []):
+			if other.has("end") and same_endpoint(other, endpoint):
+				return true
 	return false
+
+
+## 电机工具吸附：
+## - 优先吸附端点；
+## - 其次吸附杆身内部点；
+## - 最后允许悬空（grounded 电机）。
+static func find_motor_snap(model: LinkageModel, pos: Vector2) -> Dictionary:
+	var endpoint_snap := find_nearest_rod_endpoint(model, pos)
+	if not endpoint_snap.is_empty():
+		return {
+			"position": endpoint_snap["position"],
+			"attachment": endpoint_snap["endpoint"]
+		}
+
+	var along := find_snap_on_rod(model, pos)
+	if not along.is_empty():
+		return {
+			"position": along["position"],
+			"attachment": {"rod_id": along["rod_id"], "t": along["t"]}
+		}
+
+	return {"position": pos}
+
+
+## 可作为画线起止点的电机锚点：
+## - grounded 电机最多连接 1 根连杆（另一侧是地面）；
+## - rod 电机最多连接 2 根连杆（替代地面形成杆-杆电机）。
+static func _motor_open_for_draw(motor: Dictionary) -> bool:
+	var attached: Array = motor.get("attached", [])
+	if motor.get("grounded", false):
+		return attached.size() < 1
+	return attached.size() < 2
 
 
 static func endpoint_used_by_fixed(model: LinkageModel, endpoint: Dictionary) -> bool:

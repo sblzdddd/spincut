@@ -15,13 +15,25 @@ static func spawn_ground_joints(
 	model: LinkageModel,
 	motors_active := false
 ) -> void:
-	if not model.motor_point.is_empty():
-		var attached: Array = model.motor_point.get("attached", [])
-		for endpoint in attached:
-			var rod_id: int = endpoint["rod_id"]
-			if not body_by_rod_id.has(rod_id):
+	for motor in model.motor_points:
+		var attached: Array = motor.get("attached", [])
+		if motor.get("grounded", false):
+			if attached.is_empty():
 				continue
-			create(parent, model.motor_point["position"], ground, body_by_rod_id[rod_id], true, motors_active)
+			var grounded_rod_id: int = attached[0]["rod_id"]
+			if body_by_rod_id.has(grounded_rod_id):
+				create(parent, motor["position"], ground, body_by_rod_id[grounded_rod_id], true, motors_active)
+			continue
+
+		if attached.size() < 2:
+			continue
+		var rod_a_id: int = attached[0]["rod_id"]
+		var rod_b_id: int = attached[1]["rod_id"]
+		if rod_a_id == rod_b_id:
+			continue
+		if not body_by_rod_id.has(rod_a_id) or not body_by_rod_id.has(rod_b_id):
+			continue
+		create(parent, motor["position"], body_by_rod_id[rod_a_id], body_by_rod_id[rod_b_id], true, motors_active)
 
 	for fixed in model.fixed_points:
 		var attached: Array = fixed.get("attached", [])

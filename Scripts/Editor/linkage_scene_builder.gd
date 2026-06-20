@@ -25,16 +25,19 @@ func _spawn_point_visuals(
 	body_by_rod_id: Dictionary,
 	playing: bool
 ) -> void:
-	if not model.motor_point.is_empty():
+	for motor in model.motor_points:
+		var selected := _is_joint_selected({"type": "motor", "id": motor["id"]})
 		var motor_point := LinkagePoint.spawn(
 			editor_objects,
 			LinkagePoint.Kind.MOTOR,
-			model.motor_point["position"],
-			"MotorPoint",
-			_is_joint_selected({"type": "motor", "id": 1})
+			motor["position"],
+			"Motor_%s" % motor["id"],
+			selected
 		)
+		if motor.get("grounded", false) and not selected:
+			motor_point.color = EditorConstants.FLOATING_MOTOR_COLOR
 		if playing:
-			_bind_follow(motor_point, model.motor_point, body_by_rod_id)
+			_bind_follow(motor_point, motor, body_by_rod_id)
 
 	for fixed in model.fixed_points:
 		var fixed_point := LinkagePoint.spawn(
@@ -47,16 +50,17 @@ func _spawn_point_visuals(
 		if playing:
 			_bind_follow(fixed_point, fixed, body_by_rod_id)
 
-	if not model.marker_point.is_empty():
+	for marker in model.marker_points:
 		var marker_point := LinkagePoint.spawn(
 			editor_objects,
 			LinkagePoint.Kind.MARKER,
-			model.marker_point["position"],
-			"MarkerPoint",
-			_is_joint_selected({"type": "marker", "id": 1})
+			marker["position"],
+			"Marker_%s" % marker["id"],
+			_is_joint_selected({"type": "marker", "id": marker["id"]})
 		)
+		marker_point.set_meta("marker_id", marker["id"])
 		if playing:
-			_bind_follow(marker_point, model.marker_point, body_by_rod_id)
+			_bind_follow(marker_point, marker, body_by_rod_id)
 
 
 ## 将特殊点绑定到其首个附着端点所属的连杆刚体，使其在播放时跟随运动

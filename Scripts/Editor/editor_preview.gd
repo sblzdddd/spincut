@@ -18,6 +18,8 @@ static func draw(
 			_draw_point_tool_preview(canvas, Tool.FIXED_POINT, mouse_world, model)
 		Tool.MARKER_POINT:
 			_draw_point_tool_preview(canvas, Tool.MARKER_POINT, mouse_world, model)
+		Tool.MOTOR_POINT:
+			_draw_motor_tool_preview(canvas, mouse_world, model)
 		Tool.SELECT:
 			if EditorStates.is_box_selecting:
 				_draw_box_select(canvas)
@@ -111,6 +113,17 @@ static func _draw_point_tool_preview(
 	var color := base_color if can_place else EditorConstants.INVALID_PLACE_COLOR
 	var alpha := EditorConstants.PREVIEW_ALPHA if can_place else EditorConstants.INVALID_ALPHA
 	_draw_preview_dot(canvas, snap["position"], color, alpha)
+
+
+static func _draw_motor_tool_preview(
+	canvas: CanvasItem,
+	mouse_world: Vector2,
+	model: LinkageModel
+) -> void:
+	var snap := LinkageQueries.find_motor_snap(model, mouse_world)
+	var has_attachment := snap.has("attachment")
+	var color := EditorConstants.MOTOR_ANCHOR_COLOR if has_attachment else EditorConstants.FLOATING_MOTOR_COLOR
+	_draw_preview_dot(canvas, snap["position"], color, EditorConstants.PREVIEW_ALPHA)
 
 
 ## 电机端点不可放置新的固定点/标记点

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="LevelList" format=3 uid="uid://clvllist0001"]
+
+[ext_resource type="Script" uid="uid://cbjxxkacydev8" path="res://Scripts/Levels/level_list.gd" id="1_list"]
+[ext_resource type="Texture2D" uid="uid://rijfetg7feik" path="res://Assets/Screenshot 2026-06-20 205717.png" id="2_anvu7"]
+[ext_resource type="Script" uid="uid://yps3u44x1n6a" path="res://Scripts/Levels/level_data.gd" id="2_data"]
+
+[sub_resource type="Resource" id="LevelData_circle"]
+script = ExtResource("2_data")
+level_name = "Circles"
+sprite = ExtResource("2_anvu7")
+svg_solution = "res://Resources/Levels/Level1.svg"
+pass_accuracy_percent = 80.0
+
+[sub_resource type="Resource" id="LevelData_heart"]
+script = ExtResource("2_data")
+level_name = "Triangle...?"
+sprite = ExtResource("2_anvu7")
+svg_solution = "uid://1puuwji5aexb"
+pass_accuracy_percent = 80.0
+
+[sub_resource type="Resource" id="Resource_dg77c"]
+script = ExtResource("2_data")
+sprite = ExtResource("2_anvu7")
+svg_solution = "uid://bq4jikctvo6cy"
+metadata/_custom_type_script = "uid://yps3u44x1n6a"
+
+[resource]
+script = ExtResource("1_list")
+levels = Array[ExtResource("2_data")]([SubResource("LevelData_circle"), SubResource("LevelData_heart"), SubResource("Resource_dg77c")])

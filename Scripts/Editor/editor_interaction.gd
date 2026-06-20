@@ -34,12 +34,32 @@ func handle_right_click_cancel() -> bool:
 	return false
 
 
+func handle_right_press(mouse_pos: Vector2) -> bool:
+	if handle_right_click_cancel():
+		return true
+	if EditorStates.is_interaction_locked:
+		return false
+	EditorStates.begin_right_delete_hold()
+	if _delete_at_point(mouse_pos):
+		_on_rebuild.call()
+	return true
+
+
+func handle_right_release() -> bool:
+	if EditorStates.is_right_delete_hold:
+		EditorStates.end_right_delete_hold()
+		return true
+	return false
+
+
 func handle_left_press(mouse_pos: Vector2) -> bool:
 	var needs_redraw := true
 
 	match EditorStates.current_tool:
 		Tool.SELECT:
 			needs_redraw = _handle_select_press(mouse_pos)
+		Tool.DELETE:
+			needs_redraw = _handle_delete_press(mouse_pos)
 		Tool.DRAW_LINE:
 			needs_redraw = _handle_draw_line_press(mouse_pos)
 		Tool.FIXED_POINT:
@@ -47,6 +67,9 @@ func handle_left_press(mouse_pos: Vector2) -> bool:
 				_on_rebuild.call()
 		Tool.MARKER_POINT:
 			if LinkageEditing.place_marker_point(_model, mouse_pos):
+				_on_rebuild.call()
+		Tool.MOTOR_POINT:
+			if LinkageEditing.place_motor_point(_model, mouse_pos):
 				_on_rebuild.call()
 
 	return needs_redraw
@@ -82,7 +105,12 @@ func handle_mouse_motion(mouse_pos: Vector2) -> bool:
 					_on_rebuild.call()
 				EditorStates.drag_last = mouse_pos
 				return true
-		Tool.DRAW_LINE, Tool.FIXED_POINT, Tool.MARKER_POINT:
+		Tool.DELETE:
+			if EditorStates.is_right_delete_hold or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+				if _delete_at_point(mouse_pos):
+					_on_rebuild.call()
+			return true
+		Tool.DRAW_LINE, Tool.FIXED_POINT, Tool.MARKER_POINT, Tool.MOTOR_POINT:
 			return true
 
 	return false
@@ -123,6 +151,29 @@ func _handle_select_press(mouse_pos: Vector2) -> bool:
 	EditorStates.box_end = mouse_pos
 	EditorStates.is_box_selecting = true
 	return true
+
+
+## 删除工具：点击或拖过关节/连杆时立即删除
+func _handle_delete_press(mouse_pos: Vector2) -> bool:
+	if _delete_at_point(mouse_pos):
+		_on_rebuild.call()
+	return true
+
+
+func _delete_at_point(mouse_pos: Vector2) -> bool:
+	var joint_hit := LinkageQueries.pick_joint(_model, mouse_pos)
+	if not joint_hit.is_empty():
+		EditorStates.selected_joints = [joint_hit]
+		EditorStates.selected_rods = []
+		return _delete_selected()
+
+	var rod_hit := LinkageQueries.pick_rod(_model, mouse_pos)
+	if rod_hit != -1:
+		EditorStates.selected_rods = [rod_hit]
+		EditorStates.selected_joints = []
+		return _delete_selected()
+
+	return false
 
 
 ## 命中已选连杆的端点手柄时返回 { rod_id, end }
@@ -176,15 +227,17 @@ func _select_in_rect(rect: Rect2) -> void:
 		if _segment_intersects_rect(rod["start"], rod["end"], rect):
 			EditorStates.selected_rods.append(rod["id"])
 
-	if not _model.motor_point.is_empty() and rect.has_point(_model.motor_point["position"]):
-		EditorStates.selected_joints.append({"type": "motor", "id": 1})
+	for motor in _model.motor_points:
+		if rect.has_point(motor["position"]):
+			EditorStates.selected_joints.append({"type": "motor", "id": motor["id"]})
 
 	for fixed in _model.fixed_points:
 		if rect.has_point(fixed["position"]):
 			EditorStates.selected_joints.append({"type": "fixed", "id": fixed["id"]})
 
-	if not _model.marker_point.is_empty() and rect.has_point(_model.marker_point["position"]):
-		EditorStates.selected_joints.append({"type": "marker", "id": 1})
+	for marker in _model.marker_points:
+		if rect.has_point(marker["position"]):
+			EditorStates.selected_joints.append({"type": "marker", "id": marker["id"]})
 
 	EditorStates.selection_changed.emit()
 
@@ -202,17 +255,23 @@ func _move_selection(delta: Vector2) -> bool:
 
 	for joint_ref in EditorStates.selected_joints:
 		if joint_ref["type"] == "motor":
-			_model.motor_point["position"] += delta
-			LinkageEditing.set_attached_endpoints(_model, _model.motor_point)
+			var motor := _model.get_motor_by_id(joint_ref["id"])
+			if motor.is_empty():
+				continue
+			motor["position"] += delta
+			LinkageEditing.set_attached_endpoints(_model, motor)
 		elif joint_ref["type"] == "fixed":
 			var fixed := _model.get_fixed_by_id(joint_ref["id"])
 			if fixed.is_empty():
 				continue
 			fixed["position"] += delta
 			LinkageEditing.set_attached_endpoints(_model, fixed)
-		elif joint_ref["type"] == "marker" and not _model.marker_point.is_empty():
-			_model.marker_point["position"] += delta
-			LinkageEditing.set_attached_endpoints(_model, _model.marker_point)
+		elif joint_ref["type"] == "marker":
+			var marker: Dictionary = _model.get_marker_by_id(joint_ref["id"])
+			if marker.is_empty():
+				continue
+			marker["position"] += delta
+			LinkageEditing.set_attached_endpoints(_model, marker)
 
 	LinkageEditing.sync_points_to_attached_endpoints(_model)
 	return true
@@ -270,11 +329,13 @@ func _move_cluster(old_pos: Vector2, new_pos: Vector2) -> void:
 		if fixed["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
 			fixed["position"] = new_pos
 
-	if not _model.marker_point.is_empty() and _model.marker_point["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
-		_model.marker_point["position"] = new_pos
+	for marker in _model.marker_points:
+		if marker["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+			marker["position"] = new_pos
 
-	if not _model.motor_point.is_empty() and _model.motor_point["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
-		_model.motor_point["position"] = new_pos
+	for motor in _model.motor_points:
+		if motor["position"].distance_to(old_pos) <= LinkageModel.SNAP_DISTANCE:
+			motor["position"] = new_pos
 
 	LinkageEditing.sync_points_to_attached_endpoints(_model)
 
@@ -291,9 +352,9 @@ func _delete_selected() -> bool:
 			"fixed":
 				LinkageEditing.delete_fixed_point(_model, joint_ref["id"])
 			"marker":
-				LinkageEditing.clear_marker(_model)
+				LinkageEditing.delete_marker_point(_model, joint_ref["id"])
 			"motor":
-				pass
+				LinkageEditing.delete_motor_point(_model, joint_ref["id"])
 
 	EditorStates.selected_rods = []
 	EditorStates.selected_joints = []

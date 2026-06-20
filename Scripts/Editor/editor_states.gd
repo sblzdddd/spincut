@@ -127,10 +127,34 @@ var dragging_handle: Dictionary:
 			interaction_changed.emit()
 
 
+## 按住右键临时进入删除模式时保存的工具
+var _tool_before_right_delete_hold: Tool = Tool.SELECT
+var _is_right_delete_hold := false
+var is_right_delete_hold: bool:
+	get:
+		return _is_right_delete_hold
+
+
 ## 画线、框选、拖选或拖动手柄进行中时锁定工具切换
 var is_interaction_locked: bool:
 	get:
 		return _is_drawing or _is_box_selecting or _is_dragging_selection or not _dragging_handle.is_empty()
+
+
+func begin_right_delete_hold() -> void:
+	if _is_right_delete_hold or is_interaction_locked:
+		return
+	_is_right_delete_hold = true
+	_tool_before_right_delete_hold = _current_tool
+	if _current_tool != Tool.DELETE:
+		current_tool = Tool.DELETE
+
+
+func end_right_delete_hold() -> void:
+	if not _is_right_delete_hold:
+		return
+	_is_right_delete_hold = false
+	current_tool = _tool_before_right_delete_hold
 
 
 ## 当前运行模式（编辑 / 播放 / 暂停）

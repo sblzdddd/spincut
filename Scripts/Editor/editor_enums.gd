@@ -6,7 +6,9 @@ enum Tool {
 	SELECT = 0,       # 选择/移动
 	DRAW_LINE = 1,    # 画连杆
 	FIXED_POINT = 2,  # 放置固定点
-	MARKER_POINT = 3  # 放置标记点
+	MARKER_POINT = 3, # 放置标记点
+	MOTOR_POINT = 4,  # 放置电机点
+	DELETE = 5        # 点击/框选删除
 }
 
 ## 运行模式：

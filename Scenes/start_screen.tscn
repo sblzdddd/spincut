@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://bsbmuj37xxfc7"]
+
+[ext_resource type="Script" uid="uid://ba01scyu2fnsr" path="res://Scripts/Misc/start_screen.gd" id="1_start"]
+
+[node name="StartScreen" type="Control" unique_id=507761884 node_paths=PackedStringArray("play_button", "level_list_container")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_start")
+play_button = NodePath("Center/VBox/PlayButton")
+level_list_container = NodePath("Center/VBox/LevelList")
+
+[node name="BGColor" type="ColorRect" parent="." unique_id=618804412]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0.16, 0.24, 1)
+
+[node name="Center" type="CenterContainer" parent="." unique_id=938620018]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center" unique_id=565907232]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="Center/VBox" unique_id=1898035406]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+text = "SpinCut"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="Center/VBox" unique_id=705107057]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Mech Fun and Games"
+horizontal_alignment = 1
+
+[node name="PlayButton" type="Button" parent="Center/VBox" unique_id=1911614932]
+custom_minimum_size = Vector2(260, 52)
+layout_mode = 2
+text = "Start"
+
+[node name="SelectLabel" type="Label" parent="Center/VBox" unique_id=1234626375]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Levels"
+horizontal_alignment = 1
+
+[node name="LevelList" type="VBoxContainer" parent="Center/VBox" unique_id=1655389737]
+layout_mode = 2
+theme_override_constants/separation = 8
