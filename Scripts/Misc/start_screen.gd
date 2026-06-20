@@ -1,6 +1,8 @@
 ## 开始界面：展示标题并根据 GameState 关卡列表生成关卡选择按钮。
 extends Control
 
+const INTRO_TIMELINE := "Intro"
+
 @export var play_button: Button
 @export var level_list_container: VBoxContainer
 
@@ -12,6 +14,10 @@ func _ready() -> void:
 
 
 func _on_play_pressed() -> void:
+	if play_button != null:
+		play_button.disabled = true
+	Dialogic.start(INTRO_TIMELINE)
+	await Dialogic.timeline_ended
 	GameState.start_level(0)
 
 

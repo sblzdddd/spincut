@@ -1,0 +1,67 @@
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(1, 1, 1, 1),
+&"custom_info": {
+"prefix": "",
+"sound_mood_default": "",
+"sound_moods": {},
+"style": "",
+"suffix": ""
+},
+&"default_portrait": "1",
+&"description": "",
+&"display_name": "河城荷取",
+&"mirror": true,
+&"nicknames": ["河童"],
+&"offset": Vector2(0, 2),
+&"portraits": {
+"1": {
+"export_overrides": {
+"image": "\"res://Resources/Dialogs/Portraits/083_00.png\""
+},
+"mirror": false,
+"offset": Vector2(0, 0),
+"scale": 1,
+"scene": ""
+},
+"2": {
+"export_overrides": {
+"image": "\"res://Resources/Dialogs/Portraits/083_01.png\""
+},
+"mirror": false,
+"offset": Vector2(0, 0),
+"scale": 1,
+"scene": ""
+},
+"3": {
+"export_overrides": {
+"image": "\"res://Resources/Dialogs/Portraits/083_02.png\""
+},
+"mirror": false,
+"offset": Vector2(0, 0),
+"scale": 1,
+"scene": ""
+},
+"4": {
+"export_overrides": {
+"image": "\"res://Resources/Dialogs/Portraits/083_03.png\""
+},
+"mirror": false,
+"offset": Vector2(0, 0),
+"scale": 1,
+"scene": ""
+},
+"5": {
+"export_overrides": {
+"image": "\"res://Resources/Dialogs/Portraits/083_04.png\""
+},
+"mirror": false,
+"offset": Vector2(0, 0),
+"scale": 1,
+"scene": ""
+}
+},
+&"scale": 0.8
+}

@@ -11,3 +11,5 @@ extends Resource
 @export var target_size: Vector2 = Vector2(240.0, 240.0)
 ## 通关所需准确率（百分比）。
 @export var pass_accuracy_percent: float = 70.0
+## 进入关卡时自动播放的教程/提示对话（Dialogic 时间线）。留空则不播放。
+@export_file("*.dtl") var tutorial_dialog: String = ""

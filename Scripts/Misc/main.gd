@@ -5,6 +5,9 @@ const Tool = preload("res://Scripts/Editor/editor_enums.gd").Tool
 const PlayState = preload("res://Scripts/Editor/editor_enums.gd").PlayState
 const PathAccuracyUtil = preload("res://Scripts/Gameplay/path_accuracy.gd")
 
+## 关卡内教程对话所使用的样式（方形头像 + 弹出气泡）。
+const TUTORIAL_STYLE := "res://Resources/Dialogs/Styles/tutorial_dialog_style.tres"
+
 @onready var ground: StaticBody2D = $Ground
 @onready var editor_objects: Node2D = $EditorObjects
 @onready var preview_overlay: EditorPreviewOverlay = $PreviewOverlay
@@ -57,6 +60,19 @@ func _ready() -> void:
 	mouse_world = get_global_mouse_position()
 	preview_overlay.set_mouse_world(mouse_world)
 	_reset_level_status()
+	_maybe_play_tutorial()
+
+
+## 进入关卡时，若该关卡配置了教程对话，则以方形头像+气泡样式播放一次。
+func _maybe_play_tutorial() -> void:
+	var level: LevelData = GameState.get_current_level()
+	if level == null or level.tutorial_dialog.is_empty():
+		return
+	if not ResourceLoader.exists(level.tutorial_dialog):
+		return
+	# 先切换到关卡内的气泡样式，再开始播放，使 Dialogic.start 复用该布局。
+	Dialogic.Styles.load_style(TUTORIAL_STYLE)
+	Dialogic.start(level.tutorial_dialog)
 
 
 ## 根据 GameState 当前关卡应用目标曲线、通关阈值、关卡名与展示精灵图。

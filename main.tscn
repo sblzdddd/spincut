@@ -17,7 +17,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jixuk"]
 shader = ExtResource("2_h2yge")
 shader_parameter/teeth_count = 12
-shader_parameter/inner_radius = 0.4
+shader_parameter/inner_radius = 0.43500001740262
 shader_parameter/outer_radius = 0.5
 shader_parameter/hole_radius = 0.050000002375
 shader_parameter/gear_speed = 1.0000005225000006
