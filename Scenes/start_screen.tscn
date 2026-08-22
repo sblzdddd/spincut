@@ -52,11 +52,13 @@ layout_mode = 2
 text = "Start"
 
 [node name="SelectLabel" type="Label" parent="Center/VBox" unique_id=1234626375]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Levels"
 horizontal_alignment = 1
 
 [node name="LevelList" type="VBoxContainer" parent="Center/VBox" unique_id=1655389737]
+visible = false
 layout_mode = 2
 theme_override_constants/separation = 8

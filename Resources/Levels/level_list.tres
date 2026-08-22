@@ -10,7 +10,7 @@ level_name = "Circles"
 sprite = ExtResource("2_anvu7")
 svg_solution = "res://Resources/Levels/Level1.svg"
 pass_accuracy_percent = 80.0
-tutorial_dialog = "res://Resources/Dialogs/Level1Tutorial.dtl"
+tutorial_dialog = "uid://bnu0dwat7ok3m"
 
 [sub_resource type="Resource" id="LevelData_heart"]
 script = ExtResource("2_data")
@@ -18,7 +18,7 @@ level_name = "Triangle...?"
 sprite = ExtResource("2_anvu7")
 svg_solution = "uid://1puuwji5aexb"
 pass_accuracy_percent = 80.0
-tutorial_dialog = "res://Resources/Dialogs/Level2Tutorial.dtl"
+tutorial_dialog = "uid://ur57dlvs67n"
 
 [sub_resource type="Resource" id="Resource_dg77c"]
 script = ExtResource("2_data")
